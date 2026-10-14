@@ -5,6 +5,7 @@ import listed from '../../videos.json' with { type: 'json' };
 
 const DRIVE = 'https://drive.usercontent.google.com/download?id={id}&export=download&confirm=t';
 const PASS = ['content-type', 'content-length', 'content-range', 'accept-ranges', 'etag', 'last-modified'];
+const HEADERS_TIMEOUT_MS = 15_000;
 
 /* videos.json plus the VIDEO_IDS variable (ids separated by commas, spaces or new lines) */
 export function allowedIds(env = {}) {
@@ -22,10 +23,21 @@ export function responseHeaders(upstream, cacheSeconds) {
 export async function onRequestGet({ params, request, env }) {
   if (!allowedIds(env).has(params.id)) return new Response('Not found', { status: 404 });
   const range = request.headers.get('Range');
-  /* UPSTREAM_URL is for tests; leave it unset to stream from Drive */
-  const res = await fetch((env.UPSTREAM_URL || DRIVE).replace('{id}', encodeURIComponent(params.id)), {
-    headers: range ? { Range: range } : {},
-  });
+  /* the timer only covers waiting for Drive's headers; it is cleared before the body streams */
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), HEADERS_TIMEOUT_MS);
+  let res;
+  try {
+    /* UPSTREAM_URL is for tests; leave it unset to stream from Drive */
+    res = await fetch((env.UPSTREAM_URL || DRIVE).replace('{id}', encodeURIComponent(params.id)), {
+      headers: range ? { Range: range } : {},
+      signal: abort.signal,
+    });
+  } catch {
+    return new Response('Video unavailable', { status: abort.signal.aborted ? 504 : 502 });
+  } finally {
+    clearTimeout(timer);
+  }
   /* Drive sends an HTML page (quota, virus-scan notice, no access) with 200, so check the type too */
   if (!res.ok || !(res.headers.get('content-type') || '').startsWith('video/')) {
     await res.body?.cancel();

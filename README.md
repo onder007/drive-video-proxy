@@ -2,6 +2,8 @@
 
 Play Google Drive videos in your own `<video>` element. A Cloudflare Pages Function streams the file from your domain, passes the `Range` header through so seeking works, and serves only the Drive ids you allowlist.
 
+![The example page in public/index.html playing a Drive video through /v/demo, seeked to 0:08](docs/example-page.jpg)
+
 ## Why
 
 - Drive's embed player is an iframe with Drive's own controls and branding. You cannot style it, and on phones it shows two layers of controls.

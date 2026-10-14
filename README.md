@@ -27,6 +27,8 @@ cd drive-video-proxy
 npm install
 ```
 
+Newer npm versions may warn that `workerd`'s install script was not run. You can ignore it: the dev server and the tests work without it.
+
 1. In Drive, share the video as **Anyone with the link: Viewer**.
 2. Copy its file id, the part of the share link between `/file/d/` and `/view`:
    `https://drive.google.com/file/d/<FILE ID>/view`

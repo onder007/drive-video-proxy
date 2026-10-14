@@ -1,6 +1,6 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { videos, responseHeaders, onRequestGet } from '../functions/v/[id].js';
+import { videos, responseHeaders, onRequestGet, onRequestHead } from '../functions/v/[id].js';
 import listed from '../videos.json' with { type: 'json' };
 
 const realFetch = globalThis.fetch;
@@ -65,6 +65,23 @@ test('unknown id is 404 and never reaches Drive', async () => {
   const calls = mockFetch(new Response('should not be used'));
   const res = await get('not-listed');
   assert.equal(res.status, 404);
+  assert.equal(calls.length, 0);
+  assert.equal(res.headers.get('link'), null, 'no fallback player for unlisted names');
+});
+
+test('a Drive id served under a name is 404 without a Link to its player', async () => {
+  const calls = mockFetch(new Response('should not be used'));
+  const res = await get('1AbC', { VIDEO_IDS: 'demo=1AbC' });
+  assert.equal(res.status, 404);
+  assert.equal(res.headers.get('link'), null);
+  assert.equal(calls.length, 0);
+});
+
+test('HEAD is 405 with Allow: GET and never reaches Drive', async () => {
+  const calls = mockFetch(new Response('should not be used'));
+  const res = await onRequestHead({ params: { id: 'abc' }, env: { VIDEO_IDS: 'abc' } });
+  assert.equal(res.status, 405);
+  assert.equal(res.headers.get('allow'), 'GET');
   assert.equal(calls.length, 0);
 });
 

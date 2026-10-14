@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>drive-video-proxy example</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --fg: #1b1b1a; --muted: #5d5c58; --line: #dcdad4; --code: #ecebe6; --warn: #8a4b00;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #141413; --fg: #ecebe6; --muted: #a3a29c; --line: #2f2e2b; --code: #222220; --warn: #f0b060; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 48px 16px 64px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 1rem; margin: 40px 0 8px; }
+  p { margin: 0 0 12px; color: var(--muted); }
+  code, pre { font: 0.875rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  code { background: var(--code); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code); padding: 12px 14px; border-radius: 6px; overflow-x: auto; margin: 0; }
+  pre code { padding: 0; background: none; }
+  .player { margin: 28px 0 0; }
+  .player video, .player iframe { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; border: 0; border-radius: 6px; }
+  .player figcaption { margin-top: 8px; font-size: 0.875rem; color: var(--muted); overflow-wrap: anywhere; }
+  .status { margin-top: 12px; padding: 10px 12px; border-left: 3px solid var(--warn); color: var(--fg); background: var(--code); }
+</style>
+</head>
+<body>
+<main>
+  <h1>drive-video-proxy</h1>
+  <p>A Google Drive video, streamed through <code>/v/&lt;id&gt;</code> on this domain. Seeking works because the Range header is passed through.</p>
+
+  <figure class="player">
+    <video controls playsinline preload="metadata"></video>
+    <figcaption>Source: <code data-src></code> &middot; open <code>/?id=&lt;your Drive file id&gt;</code> to try another listed video</figcaption>
+  </figure>
+  <p class="status" data-status hidden></p>
+
+  <h2>Embed it on your own page</h2>
+  <pre><code>&lt;video controls playsinline preload="metadata" src="/v/YOUR_DRIVE_FILE_ID"&gt;&lt;/video&gt;</code></pre>
+</main>
+<script>
+  const id = new URLSearchParams(location.search).get('id') || 'REPLACE_WITH_YOUR_DRIVE_FILE_ID';
+  const video = document.querySelector('video');
+  video.src = `/v/${encodeURIComponent(id)}`;
+  document.querySelector('[data-src]').textContent = video.getAttribute('src');
+
+  /* Drive may refuse a file (not listed here, not shared, download quota): fall back to Drive's own player */
+  video.addEventListener('error', () => {
+    const status = document.querySelector('[data-status]');
+    status.textContent = `${video.getAttribute('src')} did not return a video. Check that the id is in videos.json or VIDEO_IDS and that the file is shared as "Anyone with the link". Showing Drive's own player instead.`;
+    status.hidden = false;
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://drive.google.com/file/d/${encodeURIComponent(id)}/preview`;
+    iframe.allow = 'autoplay; fullscreen';
+    iframe.allowFullscreen = true;
+    iframe.title = 'Drive player';
+    video.replaceWith(iframe);
+  }, { once: true });
+</script>
+</body>
+</html>

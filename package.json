@@ -1,0 +1,15 @@
+{
+  "name": "drive-video-proxy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stream Google Drive videos in your own <video> player through a Cloudflare Pages Function, with an allowlist and Range support.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "wrangler pages dev public --compatibility-date=2026-10-01",
+    "test": "node --test test/proxy.test.js",
+    "test:e2e": "node --test test/e2e.test.js"
+  }
+}

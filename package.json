@@ -11,5 +11,13 @@
     "dev": "wrangler pages dev public --compatibility-date=2026-10-01",
     "test": "node --test test/proxy.test.js",
     "test:e2e": "node --test test/e2e.test.js"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onder007/drive-video-proxy.git"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
   }
 }

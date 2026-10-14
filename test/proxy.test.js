@@ -1,6 +1,7 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { allowedIds, responseHeaders, onRequestGet } from '../functions/v/[id].js';
+import listed from '../videos.json' with { type: 'json' };
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; });
@@ -17,9 +18,9 @@ const get = (id, env = {}, headers = {}) =>
 
 test('allowedIds merges videos.json with VIDEO_IDS', () => {
   const ids = allowedIds({ VIDEO_IDS: 'aaa, bbb\nccc  ddd,' });
-  for (const id of ['aaa', 'bbb', 'ccc', 'ddd', 'REPLACE_WITH_YOUR_DRIVE_FILE_ID']) assert.ok(ids.has(id), id);
+  for (const id of ['aaa', 'bbb', 'ccc', 'ddd', ...listed]) assert.ok(ids.has(id), id);
   assert.equal(ids.has(''), false);
-  assert.deepEqual([...allowedIds()], ['REPLACE_WITH_YOUR_DRIVE_FILE_ID']);
+  assert.deepEqual([...allowedIds()], [...new Set(listed)]);
 });
 
 test('responseHeaders keeps video headers only and sets cache-control', () => {

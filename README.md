@@ -6,7 +6,7 @@ Play Google Drive videos in your own `<video>` element. A Cloudflare Pages Funct
 
 - Drive's embed player is an iframe with Drive's own controls and branding. You cannot style it, and on phones it shows two layers of controls.
 - A `<video src>` that points straight at Drive gets `403` when the request comes from another site. The same URL requested by a server works.
-- This function is that server. It is one file of about 50 lines, runs on the Cloudflare free plan, and the video stays in Drive, so there is no storage bill.
+- This function is that server. It is one file of about 60 lines, runs on the Cloudflare free plan, and the video stays in Drive, so there is no storage bill.
 - The allowlist keeps your domain from becoming an open proxy for any public Drive file.
 
 ## How it works
@@ -16,8 +16,8 @@ Play Google Drive videos in your own `<video>` element. A Cloudflare Pages Funct
                      <-- 206 + video bytes --                      <-- 206 --
 ```
 
-- **Id not in the allowlist:** `404`. Drive is never contacted.
-- **Drive answers with an error, or with an HTML page instead of a video** (download quota, virus-scan notice, file not shared): `502`. Your page can catch the `<video>` error and fall back to Drive's player, as `public/index.html` does. The example page only falls back for listed ids, so `?id=` cannot be used to embed any Drive file on your domain.
+- **Name or id not in the allowlist:** `404`. Drive is never contacted.
+- **Drive answers with an error, or with an HTML page instead of a video** (download quota, virus-scan notice, file not shared): `502`, with a `Link: <https://drive.google.com/file/d/<id>/preview>; rel="alternate"` header. Your page can catch the `<video>` error and fall back to Drive's player from that header, as `public/index.html` does. Unlisted names get no `Link`, so `?id=` cannot be used to embed any Drive file on your domain.
 - **Drive unreachable:** `502`. **No response headers from Drive within 15 seconds:** `504`.
 - **Headers:** only `content-type`, `content-length`, `content-range`, `accept-ranges`, `etag` and `last-modified` are passed on. Drive's cookies, CSP and `content-disposition: attachment` are dropped, and `cache-control: public, max-age=3600` is added.
 
@@ -45,6 +45,19 @@ Requirements: Node 22 or newer and [wrangler](https://developers.cloudflare.com/
    <video controls playsinline preload="metadata" src="/v/<FILE ID>"></video>
    ```
 
+### Short names instead of Drive ids
+
+Write `videos.json` as an object to serve each video under a name of your choice:
+
+```json
+{
+  "demo": "<FILE ID>",
+  "intro-2026": "<ANOTHER FILE ID>"
+}
+```
+
+The video is then at `/v/demo`, and `/v/<FILE ID>` answers `404`. The Drive id stays out of your URLs and page source; it only appears in the `Link` header of a `502`, when the page needs it to fall back to Drive's player.
+
 ## Deploy to Cloudflare Pages
 
 From Git: in the Cloudflare dashboard go to **Workers & Pages > Create > Pages > Connect to Git** and pick this repository. Framework preset: **None**, build command: empty, build output directory: **`public`**. Cloudflare picks up the `functions/` folder on its own.
@@ -62,15 +75,15 @@ Attach a custom domain afterwards: `*.pages.dev` addresses are blocked in some c
 
 | Setting | Where | Default | Purpose |
 |---|---|---|---|
-| `videos.json` | file in the repo | one placeholder | Allowlisted Drive file ids, deployed with the code. |
-| `VIDEO_IDS` | environment variable | empty | More ids, separated by commas, spaces or new lines. Merged with `videos.json`. Use it when you don't want the ids in the repository. |
+| `videos.json` | file in the repo | one placeholder | Allowlisted Drive file ids (`["id", ...]`) or names (`{"name": "id"}`), deployed with the code. |
+| `VIDEO_IDS` | environment variable | empty | More videos, separated by commas, spaces or new lines: `id` serves `/v/id`, `name=id` serves `/v/name`. Merged with `videos.json`. Use it when you don't want the ids in the repository. |
 | `CACHE_SECONDS` | environment variable | `3600` | `max-age` of the `cache-control` header sent to browsers. |
 | `UPSTREAM_URL` | environment variable | Drive's download URL | Where to fetch from, with `{id}` replaced by the file id. The e2e test points it at a local fake Drive. Leave it unset in production. |
 
 In production, set the variables in the Pages project's settings (Variables and Secrets). Locally, put them in a `.dev.vars` file next to `package.json` (it is git-ignored):
 
 ```
-VIDEO_IDS=<FILE ID>,<ANOTHER FILE ID>
+VIDEO_IDS=<FILE ID>,demo=<ANOTHER FILE ID>
 CACHE_SECONDS=86400
 ```
 
@@ -81,7 +94,7 @@ npm test           # unit tests (node:test), no network needed
 npm run test:e2e   # starts `wrangler pages dev` against a local fake Drive
 ```
 
-The unit tests cover the allowlist, header filtering, cache settings, `Range` forwarding, the `502`/`504` cases and the timeout with a mocked `fetch`. The e2e test runs the real function in `wrangler pages dev` and checks byte-exact `206` responses, the `404` for unknown ids, the `502` for an HTML answer and the `405` for `HEAD`. It is skipped when wrangler is not installed; to use npx instead, run `WRANGLER="npx wrangler@4" npm run test:e2e`.
+The unit tests cover the allowlist and names, header filtering, cache settings, `Range` forwarding, the `502`/`504` cases and the timeout with a mocked `fetch`. The e2e test runs the real function in `wrangler pages dev` and checks byte-exact `206` responses, the `404` for unknown ids, the `502` for an HTML answer and the `405` for `HEAD`. It is skipped when wrangler is not installed; to use npx instead, run `WRANGLER="npx wrangler@4" npm run test:e2e`.
 
 ## Limitations
 

@@ -1,6 +1,6 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { allowedIds, responseHeaders, onRequestGet } from '../functions/v/[id].js';
+import { videos, responseHeaders, onRequestGet } from '../functions/v/[id].js';
 import listed from '../videos.json' with { type: 'json' };
 
 const realFetch = globalThis.fetch;
@@ -16,11 +16,31 @@ function mockFetch(response) {
 const get = (id, env = {}, headers = {}) =>
   onRequestGet({ params: { id }, env, request: new Request(`https://example.test/v/${id}`, { headers }) });
 
-test('allowedIds merges videos.json with VIDEO_IDS', () => {
-  const ids = allowedIds({ VIDEO_IDS: 'aaa, bbb\nccc  ddd,' });
-  for (const id of ['aaa', 'bbb', 'ccc', 'ddd', ...listed]) assert.ok(ids.has(id), id);
-  assert.equal(ids.has(''), false);
-  assert.deepEqual([...allowedIds()], [...new Set(listed)]);
+test('videos merges videos.json with VIDEO_IDS', () => {
+  const map = videos({ VIDEO_IDS: 'aaa, bbb\nccc  ddd,' });
+  for (const id of ['aaa', 'bbb', 'ccc', 'ddd', ...listed]) assert.equal(map.get(id), id, id);
+  assert.equal(map.has(''), false);
+  assert.deepEqual([...videos().keys()], [...new Set(listed)]);
+});
+
+test('VIDEO_IDS name=id entries serve the id under the name only', () => {
+  const map = videos({ VIDEO_IDS: 'demo=1AbC_d-9, =nameless, empty=' });
+  assert.equal(map.get('demo'), '1AbC_d-9');
+  assert.equal(map.has('1AbC_d-9'), false);
+  assert.equal(map.has(''), false);
+  assert.equal(map.has('empty'), false);
+});
+
+test('videos.json as {"name": "id"} serves names, not ids', () => {
+  const map = videos({ VIDEO_IDS: 'extra' }, { demo: '1AbC', intro: '2XyZ' });
+  assert.deepEqual([...map], [['demo', '1AbC'], ['intro', '2XyZ'], ['extra', 'extra']]);
+});
+
+test('a name streams its Drive id', async () => {
+  const calls = mockFetch(new Response('x', { headers: { 'content-type': 'video/mp4' } }));
+  assert.equal((await get('demo', { VIDEO_IDS: 'demo=1AbC' })).status, 200);
+  assert.equal(calls[0].url, 'https://drive.usercontent.google.com/download?id=1AbC&export=download&confirm=t');
+  assert.equal((await get('1AbC', { VIDEO_IDS: 'demo=1AbC' })).status, 404);
 });
 
 test('responseHeaders keeps video headers only and sets cache-control', () => {
@@ -68,9 +88,11 @@ test('no Range from the visitor means no Range upstream', async () => {
   assert.equal(res.status, 200);
 });
 
-test('Drive HTML page (quota or no access) becomes 502', async () => {
+test('Drive HTML page (quota or no access) becomes 502 with a link to Drive\'s player', async () => {
   mockFetch(new Response('<html>quota exceeded</html>', { headers: { 'content-type': 'text/html' } }));
-  assert.equal((await get('abc', { VIDEO_IDS: 'abc' })).status, 502);
+  const res = await get('demo', { VIDEO_IDS: 'demo=1AbC' });
+  assert.equal(res.status, 502);
+  assert.equal(res.headers.get('link'), '<https://drive.google.com/file/d/1AbC/preview>; rel="alternate"');
 });
 
 test('Drive error status becomes 502', async () => {

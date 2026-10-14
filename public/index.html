@@ -31,16 +31,16 @@
 <body>
 <main>
   <h1>drive-video-proxy</h1>
-  <p>A Google Drive video, streamed through <code>/v/&lt;id&gt;</code> on this domain. Seeking works because the Range header is passed through.</p>
+  <p>A Google Drive video, streamed through <code>/v/&lt;name&gt;</code> on this domain. Seeking works because the Range header is passed through.</p>
 
   <figure class="player">
     <video controls playsinline preload="metadata"></video>
-    <figcaption>Source: <code data-src></code> &middot; open <code>/?id=&lt;your Drive file id&gt;</code> to try another listed video</figcaption>
+    <figcaption>Source: <code data-src></code> &middot; open <code>/?id=&lt;name or Drive file id&gt;</code> to try another listed video</figcaption>
   </figure>
   <p class="status" data-status hidden></p>
 
   <h2>Embed it on your own page</h2>
-  <pre><code>&lt;video controls playsinline preload="metadata" src="/v/YOUR_DRIVE_FILE_ID"&gt;&lt;/video&gt;</code></pre>
+  <pre><code>&lt;video controls playsinline preload="metadata" src="/v/YOUR_VIDEO_NAME"&gt;&lt;/video&gt;</code></pre>
 </main>
 <script>
   const id = new URLSearchParams(location.search).get('id') || 'REPLACE_WITH_YOUR_DRIVE_FILE_ID';
@@ -48,20 +48,23 @@
   video.src = `/v/${encodeURIComponent(id)}`;
   document.querySelector('[data-src]').textContent = video.getAttribute('src');
 
-  /* Drive may refuse a listed file (not shared, download quota): fall back to Drive's own player.
-     An id that is not listed (404) gets no player, or ?id= would embed any Drive file on this domain. */
+  /* Drive may refuse a listed file (not shared, download quota): fall back to Drive's own player, whose address
+     the proxy sends in a Link header. An unlisted name (404) gets no player, so ?id= cannot embed any Drive file here. */
   video.addEventListener('error', async () => {
     const status = document.querySelector('[data-status]');
     status.hidden = false;
     const probe = await fetch(video.getAttribute('src'), { headers: { Range: 'bytes=0-0' } }).catch(() => null);
     probe?.body?.cancel();
-    if (probe?.status === 404) {
-      status.textContent = `${video.getAttribute('src')} is not in videos.json or VIDEO_IDS.`;
+    const player = /<(https:\/\/drive\.google\.com\/[^>]+)>/.exec(probe?.headers.get('link') || '')?.[1];
+    if (!player) {
+      status.textContent = probe?.status === 404
+        ? `${video.getAttribute('src')} is not in videos.json or VIDEO_IDS.`
+        : `${video.getAttribute('src')} did not return a video.`;
       return;
     }
     status.textContent = `${video.getAttribute('src')} did not return a video. Check that the file is shared as "Anyone with the link". Showing Drive's own player instead.`;
     const iframe = document.createElement('iframe');
-    iframe.src = `https://drive.google.com/file/d/${encodeURIComponent(id)}/preview`;
+    iframe.src = player;
     iframe.allow = 'autoplay; fullscreen';
     iframe.allowFullscreen = true;
     iframe.title = 'Drive player';

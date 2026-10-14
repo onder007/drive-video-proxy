@@ -46,7 +46,7 @@ before(async () => {
   base = `http://127.0.0.1:${port}`;
   wrangler = spawn(cmd, [...pre, 'pages', 'dev', 'public', '--ip', '127.0.0.1', '--port', String(port),
     '--compatibility-date=2026-10-01', '--show-interactive-dev-session=false',
-    '--binding', 'VIDEO_IDS=good-id,html-page',
+    '--binding', 'VIDEO_IDS=good-id,html-page,demo=good-id',
     '--binding', `UPSTREAM_URL=http://127.0.0.1:${drive.address().port}/file/{id}`,
     '--binding', 'CACHE_SECONDS=60',
   ], { cwd: root, detached: true, env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } });
@@ -86,12 +86,20 @@ test('request without Range returns the whole file without Drive cookies', opts,
   assert.deepEqual(Buffer.from(await res.arrayBuffer()), VIDEO);
 });
 
+test('a name from VIDEO_IDS streams its Drive id', opts, async () => {
+  const res = await fetch(`${base}/v/demo`, { headers: { Range: 'bytes=0-99' } });
+  assert.equal(res.status, 206);
+  assert.deepEqual(Buffer.from(await res.arrayBuffer()), VIDEO.subarray(0, 100));
+});
+
 test('id outside the allowlist is 404', opts, async () => {
   assert.equal((await fetch(`${base}/v/someone-elses-file`)).status, 404);
 });
 
-test('Drive HTML page becomes 502', opts, async () => {
-  assert.equal((await fetch(`${base}/v/html-page`)).status, 502);
+test('Drive HTML page becomes 502 with a link to Drive\'s player', opts, async () => {
+  const res = await fetch(`${base}/v/html-page`);
+  assert.equal(res.status, 502);
+  assert.equal(res.headers.get('link'), '<https://drive.google.com/file/d/html-page/preview>; rel="alternate"');
 });
 
 test('HEAD is 405, not the example page', opts, async () => {

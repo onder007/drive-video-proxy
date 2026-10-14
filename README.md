@@ -6,7 +6,7 @@ Play Google Drive videos in your own `<video>` element. A Cloudflare Pages Funct
 
 - Drive's embed player is an iframe with Drive's own controls and branding. You cannot style it, and on phones it shows two layers of controls.
 - A `<video src>` that points straight at Drive gets `403` when the request comes from another site. The same URL requested by a server works.
-- This function is that server. It is one file of about 35 lines, runs on the Cloudflare free plan, and the video stays in Drive, so there is no storage bill.
+- This function is that server. It is one file of about 50 lines, runs on the Cloudflare free plan, and the video stays in Drive, so there is no storage bill.
 - The allowlist keeps your domain from becoming an open proxy for any public Drive file.
 
 ## How it works
@@ -17,7 +17,8 @@ Play Google Drive videos in your own `<video>` element. A Cloudflare Pages Funct
 ```
 
 - **Id not in the allowlist:** `404`. Drive is never contacted.
-- **Drive answers with an error, or with an HTML page instead of a video** (download quota, virus-scan notice, file not shared): `502`. Your page can catch the `<video>` error and fall back to Drive's player, as `public/index.html` does.
+- **Drive answers with an error, or with an HTML page instead of a video** (download quota, virus-scan notice, file not shared): `502`. Your page can catch the `<video>` error and fall back to Drive's player, as `public/index.html` does. The example page only falls back for listed ids, so `?id=` cannot be used to embed any Drive file on your domain.
+- **Drive unreachable:** `502`. **No response headers from Drive within 15 seconds:** `504`.
 - **Headers:** only `content-type`, `content-length`, `content-range`, `accept-ranges`, `etag` and `last-modified` are passed on. Drive's cookies, CSP and `content-disposition: attachment` are dropped, and `cache-control: public, max-age=3600` is added.
 
 ## Quick start
@@ -80,7 +81,7 @@ npm test           # unit tests (node:test), no network needed
 npm run test:e2e   # starts `wrangler pages dev` against a local fake Drive
 ```
 
-The unit tests cover the allowlist, header filtering, cache settings, `Range` forwarding and the `502` cases with a mocked `fetch`. The e2e test runs the real function in `wrangler pages dev` and checks byte-exact `206` responses, the `404` for unknown ids and the `502` for an HTML answer. It is skipped when wrangler is not installed; to use npx instead, run `WRANGLER="npx wrangler@4" npm run test:e2e`.
+The unit tests cover the allowlist, header filtering, cache settings, `Range` forwarding, the `502`/`504` cases and the timeout with a mocked `fetch`. The e2e test runs the real function in `wrangler pages dev` and checks byte-exact `206` responses, the `404` for unknown ids, the `502` for an HTML answer and the `405` for `HEAD`. It is skipped when wrangler is not installed; to use npx instead, run `WRANGLER="npx wrangler@4" npm run test:e2e`.
 
 ## Limitations
 

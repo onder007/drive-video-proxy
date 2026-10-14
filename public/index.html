@@ -48,11 +48,18 @@
   video.src = `/v/${encodeURIComponent(id)}`;
   document.querySelector('[data-src]').textContent = video.getAttribute('src');
 
-  /* Drive may refuse a file (not listed here, not shared, download quota): fall back to Drive's own player */
-  video.addEventListener('error', () => {
+  /* Drive may refuse a listed file (not shared, download quota): fall back to Drive's own player.
+     An id that is not listed (404) gets no player, or ?id= would embed any Drive file on this domain. */
+  video.addEventListener('error', async () => {
     const status = document.querySelector('[data-status]');
-    status.textContent = `${video.getAttribute('src')} did not return a video. Check that the id is in videos.json or VIDEO_IDS and that the file is shared as "Anyone with the link". Showing Drive's own player instead.`;
     status.hidden = false;
+    const probe = await fetch(video.getAttribute('src'), { headers: { Range: 'bytes=0-0' } }).catch(() => null);
+    probe?.body?.cancel();
+    if (probe?.status === 404) {
+      status.textContent = `${video.getAttribute('src')} is not in videos.json or VIDEO_IDS.`;
+      return;
+    }
+    status.textContent = `${video.getAttribute('src')} did not return a video. Check that the file is shared as "Anyone with the link". Showing Drive's own player instead.`;
     const iframe = document.createElement('iframe');
     iframe.src = `https://drive.google.com/file/d/${encodeURIComponent(id)}/preview`;
     iframe.allow = 'autoplay; fullscreen';

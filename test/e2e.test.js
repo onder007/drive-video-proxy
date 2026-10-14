@@ -93,3 +93,9 @@ test('id outside the allowlist is 404', opts, async () => {
 test('Drive HTML page becomes 502', opts, async () => {
   assert.equal((await fetch(`${base}/v/html-page`)).status, 502);
 });
+
+test('HEAD is 405, not the example page', opts, async () => {
+  const res = await fetch(`${base}/v/good-id`, { method: 'HEAD' });
+  assert.equal(res.status, 405);
+  assert.equal(res.headers.get('allow'), 'GET');
+});

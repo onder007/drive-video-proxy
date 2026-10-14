@@ -45,3 +45,6 @@ export async function onRequestGet({ params, request, env }) {
   }
   return new Response(res.body, { status: res.status, headers: responseHeaders(res.headers, env.CACHE_SECONDS) });
 }
+
+/* without this, HEAD falls through to the static site and gets index.html with 200 */
+export const onRequestHead = () => new Response(null, { status: 405, headers: { allow: 'GET' } });

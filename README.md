@@ -89,7 +89,7 @@ The unit tests cover the allowlist, header filtering, cache settings, `Range` fo
 - **Not an official API.** `drive.usercontent.google.com/download?id=...&export=download&confirm=t` is not a documented Google API. Google can change it without notice.
 - **Public files only.** Files must be shared as "Anyone with the link". Private files would need the Drive API with OAuth, which is out of scope.
 - **File size.** Tested with files up to about 50 MB. Multi-gigabyte files are untested.
-- **GET only.** `HEAD` requests are not handled.
+- **GET only.** `HEAD` gets `405`, so tools that probe with `HEAD` before downloading will not work.
 
 ## Project layout
 

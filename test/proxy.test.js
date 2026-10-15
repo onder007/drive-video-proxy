@@ -36,6 +36,12 @@ test('videos.json as {"name": "id"} serves names, not ids', () => {
   assert.deepEqual([...map], [['demo', '1AbC'], ['intro', '2XyZ'], ['extra', 'extra']]);
 });
 
+test('VIDEO_IDS overrides a name that videos.json also lists', () => {
+  const map = videos({ VIDEO_IDS: 'intro=NEW' }, { intro: 'OLD', demo: '1AbC' });
+  assert.equal(map.get('intro'), 'NEW');
+  assert.equal(map.get('demo'), '1AbC');
+});
+
 test('a name streams its Drive id', async () => {
   const calls = mockFetch(new Response('x', { headers: { 'content-type': 'video/mp4' } }));
   assert.equal((await get('demo', { VIDEO_IDS: 'demo=1AbC' })).status, 200);

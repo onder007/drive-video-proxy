@@ -106,7 +106,7 @@ npx wrangler pages deploy public --project-name drive-video-proxy
 | Setting | Where | Default | Purpose |
 |---|---|---|---|
 | `videos.json` | file in the repo | one placeholder | Allowlisted Drive file ids (`["id", ...]`) or names (`{"name": "id"}`), deployed with the code. |
-| `VIDEO_IDS` | environment variable | empty | More videos, separated by commas, spaces or new lines: `id` serves `/v/id`, `name=id` serves `/v/name`. Merged with `videos.json`. Use it to keep ids out of the repository. |
+| `VIDEO_IDS` | environment variable | empty | More videos, separated by commas, spaces or new lines: `id` serves `/v/id`, `name=id` serves `/v/name`. Merged with `videos.json`; when both list the same name, `VIDEO_IDS` wins. Use it to keep ids out of the repository. |
 | `CACHE_SECONDS` | environment variable | `3600` | `max-age` of the `cache-control` header sent to browsers. |
 | `UPSTREAM_URL` | environment variable | Drive's download URL | Where to fetch from, with `{id}` replaced by the file id. The e2e test points it at a local fake Drive. Leave it unset in production. |
 

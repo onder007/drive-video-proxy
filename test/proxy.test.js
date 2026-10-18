@@ -131,7 +131,9 @@ test('UPSTREAM_URL replaces the Drive address', async () => {
 
 test('Drive unreachable becomes 502 instead of an uncaught exception', async () => {
   globalThis.fetch = async () => { throw new TypeError('Network connection lost.'); };
-  assert.equal((await get('abc', { VIDEO_IDS: 'abc' })).status, 502);
+  const res = await get('abc', { VIDEO_IDS: 'abc' });
+  assert.equal(res.status, 502);
+  assert.equal(res.headers.get('link'), '<https://drive.google.com/file/d/abc/preview>; rel="alternate"');
 });
 
 test('no headers from Drive within 15 s becomes 504', async (t) => {
@@ -140,5 +142,7 @@ test('no headers from Drive within 15 s becomes 504', async (t) => {
     init.signal.addEventListener('abort', () => reject(init.signal.reason)));
   const pending = get('abc', { VIDEO_IDS: 'abc' });
   t.mock.timers.tick(15_000);
-  assert.equal((await pending).status, 504);
+  const res = await pending;
+  assert.equal(res.status, 504);
+  assert.equal(res.headers.get('link'), '<https://drive.google.com/file/d/abc/preview>; rel="alternate"');
 });

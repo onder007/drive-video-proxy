@@ -55,7 +55,7 @@ Write `videos.json` as an object to serve each video under a name of your choice
 }
 ```
 
-The video is then at `/v/intro`, and `/v/<FILE ID>` answers `404`. The Drive id stays out of your URLs and page source. It only shows up in the `Link` header of a `502`, where the page needs it to fall back to Drive's player.
+The video is then at `/v/intro`, and `/v/<FILE ID>` answers `404`. The Drive id stays out of your URLs and page source. It only shows up in the `Link` header of a `502` or `504`, where the page needs it to fall back to Drive's player.
 
 ## How it works
 
@@ -79,8 +79,8 @@ sequenceDiagram
 | Listed video, Drive answers with a video | `200` or `206`, body streamed as it arrives |
 | Name or id not in the allowlist | `404`, Drive is never contacted |
 | Drive answers with an error, or with an HTML page instead of a video (download quota, virus-scan notice, file not shared) | `502` with `Link: <https://drive.google.com/file/d/<id>/preview>; rel="alternate"` |
-| Drive unreachable | `502` |
-| No response headers from Drive within 15 seconds | `504` |
+| Drive unreachable | `502` with the same `Link` |
+| No response headers from Drive within 15 seconds | `504` with the same `Link` |
 | `HEAD` request | `405` |
 
 Only `content-type`, `content-length`, `content-range`, `accept-ranges`, `etag` and `last-modified` are passed on. Drive's cookies, CSP and `content-disposition: attachment` are dropped, and `cache-control: public, max-age=3600` is added.

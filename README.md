@@ -2,7 +2,7 @@
 
 Play Google Drive videos in your own `<video>` element, from your own domain.
 
-A single Cloudflare Pages Function (about 60 lines, no runtime dependencies) streams the file from Drive, passes the `Range` header through so seeking works, and serves only the Drive files you allowlist. The video stays in Drive, so there is no storage bill.
+A single Cloudflare Pages Function (about 60 lines, no runtime dependencies) streams the file from Drive and passes the `Range` header through so seeking works. It serves only the Drive files you allowlist. The video stays in Drive, so there is no storage bill.
 
 ```html
 <video controls playsinline preload="metadata" src="/v/intro"></video>
@@ -12,7 +12,7 @@ A single Cloudflare Pages Function (about 60 lines, no runtime dependencies) str
 
 ## Why
 
-- Drive's embed player is an iframe with Drive's own controls and branding. You cannot style it, and on phones it can show two layers of controls.
+- Drive's embed player is an iframe with Drive's own controls and branding. You cannot style it. On phones it can show two layers of controls.
 - A `<video src>` pointing straight at Drive gets `403` when the request comes from another site. The same URL requested by a server works.
 - This function is that server. It runs on the Cloudflare free plan.
 - The allowlist keeps your domain from becoming an open proxy for any public Drive file.
@@ -55,7 +55,7 @@ Write `videos.json` as an object to serve each video under a name of your choice
 }
 ```
 
-The video is then at `/v/intro`, and `/v/<FILE ID>` answers `404`. The Drive id stays out of your URLs and page source. It only shows up in the `Link` header of a `502` or `504`, where the page needs it to fall back to Drive's player.
+The video is then at `/v/intro` and `/v/<FILE ID>` answers `404`. The Drive id stays out of your URLs and page source. It only shows up in the `Link` header of a `502` or `504`, where the page needs it to fall back to Drive's player.
 
 ## How it works
 
@@ -83,7 +83,7 @@ sequenceDiagram
 | No response headers from Drive within 15 seconds | `504` with the same `Link` |
 | `HEAD` request | `405` |
 
-Only `content-type`, `content-length`, `content-range`, `accept-ranges`, `etag` and `last-modified` are passed on. Drive's cookies, CSP and `content-disposition: attachment` are dropped, and `cache-control: public, max-age=3600` is added.
+Only `content-type`, `content-length`, `content-range`, `accept-ranges`, `etag` and `last-modified` are passed on. Drive's cookies, CSP and `content-disposition: attachment` are dropped. `cache-control: public, max-age=3600` is added.
 
 The example page in `public/index.html` catches the `<video>` error, reads the `Link` header and swaps in Drive's own player. Unlisted names get no `Link`, so `?id=` cannot be used to embed an arbitrary Drive file on your domain.
 
@@ -120,7 +120,7 @@ CACHE_SECONDS=86400
 ## Limitations
 
 - **Download quota.** Drive limits how often a single file can be downloaded. When a popular video hits the limit, Drive sends an HTML page instead of the video for a while. The function then answers `502` and the example page falls back to Drive's player. For high-traffic videos, use real video hosting.
-- **No edge cache.** Every request goes through the function to Drive. `cache-control` only helps the visitor's browser, and each seek is a new request that counts toward your Cloudflare Workers request limits.
+- **No edge cache.** Every request goes through the function to Drive. `cache-control` only helps the visitor's browser. Each seek is a new request that counts toward your Cloudflare Workers request limits.
 - **Not an official API.** `drive.usercontent.google.com/download?id=...&export=download&confirm=t` is not a documented Google endpoint. Google can change it without notice.
 - **Public files only.** Files must be shared as "Anyone with the link". Private files would need the Drive API with OAuth, which is out of scope.
 - **File size.** Tested with files up to about 50 MB. Multi-gigabyte files are untested.

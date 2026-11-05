@@ -118,6 +118,15 @@ test('Drive HTML page (quota or no access) becomes 502 with a link to Drive\'s p
   assert.equal(res.headers.get('link'), '<https://drive.google.com/file/d/1AbC/preview>; rel="alternate"');
 });
 
+test('a Range past the end of the file stays 416 instead of "unavailable"', async () => {
+  mockFetch(new Response(null, { status: 416, headers: { 'content-range': 'bytes */300' } }));
+  const res = await get('abc', { VIDEO_IDS: 'abc' }, { Range: 'bytes=300-' });
+  assert.equal(res.status, 416);
+  assert.equal(res.headers.get('content-range'), 'bytes */300');
+  assert.equal(res.headers.get('cache-control'), null);
+  assert.equal(res.headers.get('link'), null);
+});
+
 test('Drive error status becomes 502', async () => {
   mockFetch(new Response('denied', { status: 403, headers: { 'content-type': 'video/mp4' } }));
   assert.equal((await get('abc', { VIDEO_IDS: 'abc' })).status, 502);

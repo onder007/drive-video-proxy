@@ -78,6 +78,7 @@ sequenceDiagram
 |---|---|
 | Listed video, Drive answers with a video | `200` or `206`, body streamed as it arrives |
 | Name or id not in the allowlist | `404`, Drive is never contacted |
+| `Range` past the end of the file (Drive answers `416`) | `416` with Drive's `content-range`, no `Link` |
 | Drive answers with an error, or with an HTML page instead of a video (download quota, virus-scan notice, file not shared) | `502` with `Link: <https://drive.google.com/file/d/<id>/preview>; rel="alternate"` |
 | Drive unreachable | `502` with the same `Link` |
 | No response headers from Drive within 15 seconds | `504` with the same `Link` |

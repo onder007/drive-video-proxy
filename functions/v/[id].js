@@ -45,6 +45,11 @@ export async function onRequestGet({ params, request, env }) {
   } finally {
     clearTimeout(timer);
   }
+  /* the file is fine, the Range is past its end: say so, or the page would fall back to Drive's player */
+  if (res.status === 416) {
+    await res.body?.cancel();
+    return new Response(null, { status: 416, headers: { 'content-range': res.headers.get('content-range') ?? '' } });
+  }
   /* Drive sends an HTML page (quota, virus-scan notice, no access) with 200, so check the type too */
   if (!res.ok || !(res.headers.get('content-type') || '').startsWith('video/')) {
     await res.body?.cancel();

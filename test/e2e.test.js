@@ -24,6 +24,7 @@ const drive = createServer((req, res) => {
     return res.end(VIDEO);
   }
   const start = Number(m[1]), end = m[2] ? Math.min(Number(m[2]), VIDEO.length - 1) : VIDEO.length - 1;
+  if (start >= VIDEO.length) { res.writeHead(416, { 'content-range': `bytes */${VIDEO.length}` }); return res.end(); }
   res.writeHead(206, { 'content-type': 'video/mp4', 'content-length': end - start + 1, 'content-range': `bytes ${start}-${end}/${VIDEO.length}`, 'accept-ranges': 'bytes' });
   res.end(VIDEO.subarray(start, end + 1));
 });
@@ -90,6 +91,12 @@ test('a name from VIDEO_IDS streams its Drive id', opts, async () => {
   const res = await fetch(`${base}/v/demo`, { headers: { Range: 'bytes=0-99' } });
   assert.equal(res.status, 206);
   assert.deepEqual(Buffer.from(await res.arrayBuffer()), VIDEO.subarray(0, 100));
+});
+
+test('Range past the end of the file is 416, not 502', opts, async () => {
+  const res = await fetch(`${base}/v/good-id`, { headers: { Range: `bytes=${VIDEO.length}-` } });
+  assert.equal(res.status, 416);
+  assert.equal(res.headers.get('content-range'), `bytes */${VIDEO.length}`);
 });
 
 test('id outside the allowlist is 404', opts, async () => {

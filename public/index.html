@@ -57,9 +57,12 @@
     probe?.body?.cancel();
     const player = /<(https:\/\/drive\.google\.com\/[^>]+)>/.exec(probe?.headers.get('link') || '')?.[1];
     if (!player) {
+      /* a 2xx is a video/* answer from Drive, so the bytes arrived and it is the browser that failed (often the codec) */
       status.textContent = probe?.status === 404
         ? `${video.getAttribute('src')} is not in videos.json or VIDEO_IDS.`
-        : `${video.getAttribute('src')} did not return a video.`;
+        : probe?.ok
+          ? `${video.getAttribute('src')} returned a video, but this browser could not play it.`
+          : `${video.getAttribute('src')} did not return a video.`;
       return;
     }
     status.textContent = `${video.getAttribute('src')} did not return a video. Check that the file is shared as "Anyone with the link". Showing Drive's own player instead.`;

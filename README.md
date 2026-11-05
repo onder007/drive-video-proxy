@@ -86,7 +86,7 @@ sequenceDiagram
 
 Only `content-type`, `content-length`, `content-range`, `accept-ranges`, `etag` and `last-modified` are passed on. Drive's cookies, CSP and `content-disposition: attachment` are dropped. `cache-control: public, max-age=3600` is added.
 
-The example page in `public/index.html` catches the `<video>` error, reads the `Link` header and swaps in Drive's own player. Unlisted names get no `Link`, so `?id=` cannot be used to embed an arbitrary Drive file on your domain.
+The example page in `public/index.html` catches the `<video>` error, reads the `Link` header and swaps in Drive's own player. Unlisted names get no `Link`, so `?id=` cannot be used to embed an arbitrary Drive file on your domain. A file that comes through but does not play in the browser gets a message and no fallback.
 
 ## Deploy to Cloudflare Pages
 

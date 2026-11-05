@@ -127,6 +127,13 @@ test('a Range past the end of the file stays 416 instead of "unavailable"', asyn
   assert.equal(res.headers.get('link'), null);
 });
 
+test('a 416 from Drive without content-range sends none, not an empty header', async () => {
+  mockFetch(new Response(null, { status: 416 }));
+  const res = await get('abc', { VIDEO_IDS: 'abc' }, { Range: 'bytes=300-' });
+  assert.equal(res.status, 416);
+  assert.equal(res.headers.has('content-range'), false);
+});
+
 test('Drive error status becomes 502', async () => {
   mockFetch(new Response('denied', { status: 403, headers: { 'content-type': 'video/mp4' } }));
   assert.equal((await get('abc', { VIDEO_IDS: 'abc' })).status, 502);

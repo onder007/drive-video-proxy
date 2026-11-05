@@ -134,7 +134,7 @@ npm test           # unit tests (node:test), no network needed
 npm run test:e2e   # runs the function in `wrangler pages dev` against a local fake Drive
 ```
 
-The unit tests cover the allowlist and names, header filtering, cache settings, `Range` forwarding, the `502`/`504` cases and the timeout, with a mocked `fetch`. The e2e test checks byte-exact `206` responses, the `404` for unknown ids, the `502` for an HTML answer and the `405` for `HEAD`.
+The unit tests cover the allowlist and names, header filtering, cache settings, `Range` forwarding, the `416`, `502` and `504` cases and the timeout, with a mocked `fetch`. The e2e test checks byte-exact `206` responses, the `416` past the end of the file, the `404` for unknown ids, the `502` for an HTML answer and the `405` for `HEAD`.
 
 ## Project layout
 
